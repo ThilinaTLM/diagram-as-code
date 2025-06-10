@@ -3,14 +3,21 @@ from diagrams.aws.compute import EC2
 from diagrams.onprem.client import Users
 from diagrams.onprem.database import PostgreSQL
 from diagrams.onprem.network import Nginx
-from flask import Flask, send_file, request, jsonify
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 import io
 import os
 import tempfile
 import sys
 from contextlib import redirect_stdout, redirect_stderr
+from typing import Optional
 
-app = Flask(__name__)
+app = FastAPI(title="Graph as Code Online", description="Generate diagrams from Python code")
+
+# Request model for code execution
+class CodeRequest(BaseModel):
+    code: str
 
 # Import available diagram components
 AVAILABLE_COMPONENTS = {
@@ -144,43 +151,50 @@ def execute_diagram_code(code):
                 error_msg += f"\nStderr: {stderr_output}"
             return None, error_msg
 
-@app.route('/diagram', methods=['POST'])
-def execute_diagram():
+@app.post('/diagram')
+async def execute_diagram(request: Request):
     """Execute Python code to generate a diagram"""
     try:
-        # Get the code from request body
-        if request.content_type == 'application/json':
-            data = request.get_json()
+        # Handle both JSON and raw text input
+        content_type = request.headers.get('content-type', '')
+        
+        if 'application/json' in content_type:
+            data = await request.json()
             code = data.get('code')
+            if not code:
+                raise HTTPException(status_code=400, detail='No code provided in JSON body')
         else:
             # Accept raw text as Python code
-            code = request.get_data(as_text=True)
-        
-        if not code:
-            return jsonify({'error': 'No code provided'}), 400
+            body = await request.body()
+            code = body.decode('utf-8')
+            if not code:
+                raise HTTPException(status_code=400, detail='No code provided')
         
         # Execute the code and generate diagram
         img_data, error = execute_diagram_code(code)
         
         if error:
-            return jsonify({'error': error}), 400
+            raise HTTPException(status_code=400, detail=error)
         
         if img_data:
-            return send_file(
-                img_data,
-                mimetype='image/png',
-                as_attachment=False,
-                download_name='executed_diagram.png'
+            return StreamingResponse(
+                io.BytesIO(img_data.getvalue()),
+                media_type='image/png',
+                headers={'Content-Disposition': 'inline; filename=executed_diagram.png'}
             )
         else:
-            return jsonify({'error': 'No diagram was generated'}), 400
+            raise HTTPException(status_code=400, detail='No diagram was generated')
             
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': f'Failed to execute code: {str(e)}'}), 500
+        raise HTTPException(status_code=500, detail=f'Failed to execute code: {str(e)}')
 
 def main():
+    import uvicorn
     print("🚀 Running at http://localhost:5000/")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("📚 API documentation available at http://localhost:5000/docs")
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)
 
 if __name__ == "__main__":
     main()
