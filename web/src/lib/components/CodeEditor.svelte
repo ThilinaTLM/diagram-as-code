@@ -9,9 +9,20 @@
   let isInitialized = $state(false);
   let isLoading = $state(false);
   let hasError = $state(false);
+  let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   onMount(async () => {
     if (!editorContainer) return;
+
+    keydownHandler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCodeChange(editor?.getValue() ?? "");
+      }
+    };
+
+    document.addEventListener("keydown", keydownHandler);
 
     try {
       isLoading = true;
@@ -61,6 +72,11 @@
   });
 
   onDestroy(() => {
+    if (keydownHandler) {
+      document.removeEventListener("keydown", keydownHandler);
+      keydownHandler = null;
+    }
+
     if (editor) {
       editor.dispose();
       editor = null;
