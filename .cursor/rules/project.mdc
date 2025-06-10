@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project Tools
+
+Please use `uv` as the Python package and project manager.
+- uv add: for installing new packages
+- uv remove: to uninstall packages
+- uv run <filename>: to run the file with uv's python environment
