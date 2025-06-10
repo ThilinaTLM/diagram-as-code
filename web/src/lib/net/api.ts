@@ -4,9 +4,11 @@ export type Result = {
   error: string | null;
 };
 
+const API_URL = "http://localhost:5000";
+
 export async function getDiagramPreview(source: string): Promise<Result> {
   try {
-    const response = await fetch("http://localhost:5000/diagram", {
+    const response = await fetch(`${API_URL}/api/diagram`, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain",

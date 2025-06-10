@@ -1,29 +1,30 @@
-from diagrams import Diagram as _Diagram, Cluster
-from diagrams.aws.compute import EC2
-from diagrams.onprem.client import Users
-from diagrams.onprem.database import PostgreSQL
-from diagrams.onprem.network import Nginx
+from diagrams import Diagram as _Diagram   
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import io
 import os
 import tempfile
 import sys
 from contextlib import redirect_stdout, redirect_stderr
-import types
+from pathlib import Path
 
 app = FastAPI(title="Graph as Code Online", description="Generate diagrams from Python code")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5000"],  # Allow all origins for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files from Vite build
+static_dir = Path(__file__).parent / "web" / "dist"
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
 
 class DiagramWrapper:
     """Wrapper for Diagram that automatically injects filename and show parameters"""
@@ -126,7 +127,7 @@ def execute_diagram_code(code):
             if original_diagrams_module:
                 sys.modules['diagrams'] = original_diagrams_module
 
-@app.post('/diagram')
+@app.post('/api/diagram')
 async def execute_diagram(request: Request):
     """Execute Python code to generate a diagram"""
     try:
@@ -164,6 +165,30 @@ async def execute_diagram(request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Failed to execute code: {str(e)}')
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve the SPA for all non-API routes"""
+    # Skip API routes - they should be handled by their specific endpoints
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # Check if it's a static file in the dist root (like vite.svg, favicon.ico, etc.)
+    static_file = static_dir / full_path
+    if static_file.exists() and static_file.is_file():
+        return FileResponse(static_file)
+    
+    # For all other routes, serve the SPA
+    index_file = static_dir / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not built. Run 'cd web && npm run build' first.")
 
 def main():
     import uvicorn
