@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button";
   import * as Select from "$lib/components/ui/select/index.js";
-  import { Play, FileText } from "@lucide/svelte";
 
   type Example = {
     id: string;
@@ -13,15 +11,11 @@
   let {
     examples,
     onExampleChange,
-    onGenerate,
     selectedExample,
-    isLoading,
   }: {
     examples: Array<Example>;
     onExampleChange: (exampleId: string) => void;
-    onGenerate: () => void;
     selectedExample: string;
-    isLoading: boolean;
   } = $props();
 
   const triggerContent = $derived(
@@ -67,10 +61,6 @@
           </Select.Content>
         </Select.Root>
       </div>
-      <Button onclick={onGenerate} disabled={isLoading} class="gap-2">
-        <Play class="h-4 w-4" />
-        {isLoading ? "Generating..." : "Generate"}
-      </Button>
     </div>
   </div>
 </header>

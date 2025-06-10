@@ -8,6 +8,7 @@
   } from "$lib/components/ui/alert";
   import { Play, AlertCircle } from "@lucide/svelte";
   import { getDiagramPreview } from "$lib/net/api";
+  import DiagramViewer from "./DiagramViewer.svelte";
 
   interface Props {
     code: string;
@@ -90,7 +91,7 @@
 </script>
 
 <div class="h-full flex flex-col">
-  <div class="flex-1 p-4 flex items-center justify-center bg-muted/10">
+  <div class="flex-1 flex items-center justify-center bg-muted/10">
     {#if isLoading}
       <div class="flex flex-col items-center space-y-4">
         <div
@@ -119,16 +120,11 @@
         </div>
       </div>
     {:else if diagramUrl}
-      <div class="max-w-full max-h-full overflow-auto">
-        <img
-          src={diagramUrl}
-          alt="Generated Diagram"
-          class="max-w-full max-h-full object-contain rounded-lg border shadow-sm"
-          onerror={() => {
-            error = "Failed to load generated diagram";
-          }}
-        />
-      </div>
+      <DiagramViewer
+        src={diagramUrl}
+        alt="Generated Diagram"
+        class="shadow-sm"
+      />
     {:else}
       <div class="text-center text-muted-foreground">
         <div class="mx-auto h-12 w-12 text-muted-foreground/50 mb-4">
