@@ -30,7 +30,4 @@ COPY --from=frontend-builder /app/web/dist ./web/dist
 
 EXPOSE 5000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
-
 CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] 
