@@ -1,45 +1,71 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
+  import * as Select from "$lib/components/ui/select/index.js";
   import { Play, FileText } from "@lucide/svelte";
 
-  export let examples: Array<{
+  type Example = {
     id: string;
     name: string;
     description: string;
     file: string;
-  }>;
-  export let selectedExample: string;
-  export let isLoading: boolean;
-  export let onExampleChange: (exampleId: string) => void;
-  export let onGenerate: () => void;
+  };
 
-  function handleExampleChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    onExampleChange(target.value);
+  let {
+    examples,
+    onExampleChange,
+    onGenerate,
+    selectedExample,
+    isLoading,
+  }: {
+    examples: Array<Example>;
+    onExampleChange: (exampleId: string) => void;
+    onGenerate: () => void;
+    selectedExample: string;
+    isLoading: boolean;
+  } = $props();
+
+  const triggerContent = $derived(
+    examples.find((example) => example.id === selectedExample)?.name ??
+      "Select an example"
+  );
+
+  function handleValueChange(value: string | undefined) {
+    if (value) {
+      onExampleChange(value);
+    }
   }
 </script>
 
-<header class="border-b bg-card px-6 py-4">
+<header class="border-b bg-card px-6 py-2">
   <div class="flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-foreground">Graph as Code</h1>
-      <p class="text-sm text-muted-foreground mt-1">
+      <h1 class="text-xl font-bold text-foreground">Graph as Code</h1>
+      <p class="text-sm text-muted-foreground">
         Create infrastructure diagrams using Python and the diagrams library
       </p>
     </div>
     <div class="flex items-center gap-4">
-      <!-- Example Selector -->
       <div class="flex items-center gap-2">
-        <FileText class="h-4 w-4 text-muted-foreground" />
-        <select 
-          bind:value={selectedExample}
-          onchange={handleExampleChange}
-          class="px-3 py-2 border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+        <Select.Root
+          type="single"
+          name="selectedExample"
+          value={selectedExample}
+          onValueChange={handleValueChange}
         >
-          {#each examples as example}
-            <option value={example.id}>{example.name}</option>
-          {/each}
-        </select>
+          <Select.Trigger class="w-[200px]">
+            {triggerContent}
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Group>
+              <Select.Label>Examples</Select.Label>
+              {#each examples as example (example.id)}
+                <Select.Item value={example.id} label={example.name}>
+                  {example.name}
+                </Select.Item>
+              {/each}
+            </Select.Group>
+          </Select.Content>
+        </Select.Root>
       </div>
       <Button onclick={onGenerate} disabled={isLoading} class="gap-2">
         <Play class="h-4 w-4" />
@@ -47,4 +73,4 @@
       </Button>
     </div>
   </div>
-</header> 
+</header>
