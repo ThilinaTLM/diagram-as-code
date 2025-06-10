@@ -9,20 +9,19 @@
   import { Play, AlertCircle } from "@lucide/svelte";
   import { getDiagramPreview } from "$lib/net/api";
 
-  export let code: string;
+  interface Props {
+    code: string;
+  }
 
-  let diagramUrl = "";
-  let isLoading = false;
-  let error = "";
-  let debounceTimer: NodeJS.Timeout | null = null;
+  let { code }: Props = $props();
 
-  // Export loading state for parent components
-  export { isLoading };
+  let diagramUrl = $state("");
+  let isLoading = $state(false);
+  let error = $state("");
+  let debounceTimer: NodeJS.Timeout | null = $state(null);
 
-  // Debounce delay in milliseconds
   const DEBOUNCE_DELAY = 500;
 
-  // Function to generate diagram from Python code
   async function generateDiagram() {
     if (!code.trim()) {
       diagramUrl = "";
@@ -36,7 +35,6 @@
       const result = await getDiagramPreview(code);
 
       if (result.type === "success" && result.blob) {
-        // Clean up previous URL to prevent memory leaks
         if (diagramUrl) {
           URL.revokeObjectURL(diagramUrl);
         }
@@ -53,7 +51,6 @@
     }
   }
 
-  // Debounced function to generate diagram
   function debouncedGenerateDiagram() {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
@@ -64,12 +61,17 @@
     }, DEBOUNCE_DELAY);
   }
 
-  // Watch for code changes and trigger debounced generation
-  $: if (code !== undefined) {
-    debouncedGenerateDiagram();
-  }
+  let previousCode = $state(code);
 
-  // Cleanup on component destroy
+  $effect(() => {
+    if (code !== previousCode) {
+      previousCode = code;
+      if (code !== undefined) {
+        debouncedGenerateDiagram();
+      }
+    }
+  });
+
   onDestroy(() => {
     if (debounceTimer) {
       clearTimeout(debounceTimer);
@@ -79,7 +81,6 @@
     }
   });
 
-  // Manual generate function for the button
   function handleManualGenerate() {
     if (debounceTimer) {
       clearTimeout(debounceTimer);

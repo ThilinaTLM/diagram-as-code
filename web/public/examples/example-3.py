@@ -3,8 +3,8 @@ from diagrams.onprem.client import Users
 from diagrams.aws.network import CloudFront, APIGateway
 from diagrams.aws.storage import S3
 from diagrams.aws.compute import Lambda
-from diagrams.aws.database import DynamoDB
-from diagrams.aws.management import CloudWatch
+from diagrams.aws.database import Dynamodb
+from diagrams.aws.management import Cloudwatch
 
 with Diagram("Serverless Web Application"):
     users = Users("Users")
@@ -19,11 +19,11 @@ with Diagram("Serverless Web Application"):
         lambda_api = Lambda("API Function")
     
     with Cluster("Data Layer"):
-        dynamodb = DynamoDB("DynamoDB")
+        dynamodb = Dynamodb("DynamoDB")
         s3_data = S3("Data Storage")
     
     with Cluster("Monitoring"):
-        cloudwatch = CloudWatch("CloudWatch")
+        cloudwatch = Cloudwatch("CloudWatch")
     
     users >> cdn >> s3_web
     users >> api_gateway
