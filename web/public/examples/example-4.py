@@ -1,3 +1,9 @@
+from diagrams import Diagram, Cluster
+from diagrams.onprem.client import Users
+from diagrams.k8s.network import Ingress, Service
+from diagrams.k8s.compute import Pod
+from diagrams.k8s.storage import PersistentVolume
+
 with Diagram("Kubernetes Deployment"):
     users = Users("Users")
     

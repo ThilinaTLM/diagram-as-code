@@ -1,3 +1,10 @@
+from diagrams import Diagram, Cluster
+from diagrams.onprem.client import Users
+from diagrams.aws.network import ALB
+from diagrams.aws.network import APIGateway
+from diagrams.aws.compute import ECS
+from diagrams.aws.database import RDS, ElastiCache
+
 with Diagram("Microservices Architecture"):
     users = Users("Users")
     

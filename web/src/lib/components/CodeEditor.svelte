@@ -1,94 +1,114 @@
 <script lang="ts">
-  import { Code } from "@lucide/svelte";
+  import { onMount, onDestroy } from "svelte";
+  import * as monaco from "monaco-editor";
 
-  export let code: string;
-  export let selectedExample: string;
-  export let examples: Array<{
-    id: string;
-    name: string;
-    description: string;
-    file: string;
-  }>;
-  export let onCodeChange: (code: string) => void;
+  let { code, onCodeChange } = $props();
 
-  function handleCodeChange(event: Event) {
-    const target = event.target as HTMLTextAreaElement;
-    onCodeChange(target.value);
-  }
+  let editorContainer: HTMLDivElement | null = $state(null);
+  let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+  let isInitialized = $state(false);
+  let isLoading = $state(false);
+  let hasError = $state(false);
+
+  onMount(async () => {
+    if (!editorContainer) return;
+
+    try {
+      isLoading = true;
+
+      editor = monaco.editor.create(editorContainer, {
+        value: code,
+        language: "python",
+        theme: "vs",
+        automaticLayout: true,
+        minimap: { enabled: true },
+        scrollBeyondLastLine: false,
+        fontSize: 14,
+        fontFamily:
+          'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
+        lineNumbers: "on",
+        renderWhitespace: "selection",
+        tabSize: 4,
+        insertSpaces: true,
+        wordWrap: "on",
+        bracketPairColorization: { enabled: true },
+        guides: {
+          indentation: true,
+          bracketPairs: true,
+        },
+        suggest: {
+          showKeywords: true,
+          showSnippets: true,
+        },
+      });
+
+      editor.onDidChangeModelContent(() => {
+        if (editor && isInitialized) {
+          const newCode = editor.getValue();
+          if (newCode !== code) {
+            onCodeChange(newCode);
+          }
+        }
+      });
+
+      isInitialized = true;
+      isLoading = false;
+    } catch (error) {
+      console.error("Failed to initialize Monaco Editor:", error);
+      hasError = true;
+      isLoading = false;
+    }
+  });
+
+  onDestroy(() => {
+    if (editor) {
+      editor.dispose();
+      editor = null;
+    }
+  });
+
+  $effect(() => {
+    if (editor && isInitialized && code !== editor.getValue()) {
+      const position = editor.getPosition();
+      editor.setValue(code);
+      if (position) {
+        editor.setPosition(position);
+      }
+    }
+  });
 </script>
 
 <div class="h-full flex flex-col">
-  <!-- Code Editor Header -->
-  <div class="border-b bg-muted/50 px-4 py-3">
-    <div class="flex items-center gap-2 mb-2">
-      <Code class="h-4 w-4 text-muted-foreground" />
-      <h2 class="font-semibold text-foreground">Python Code Editor</h2>
-    </div>
-    {#if selectedExample}
-      {@const currentExample = examples.find(ex => ex.id === selectedExample)}
-      {#if currentExample}
-        <p class="text-xs text-muted-foreground">
-          <span class="font-medium">{currentExample.name}:</span> {currentExample.description}
-        </p>
-      {/if}
-    {/if}
-  </div>
-
-  <!-- Code Editor -->
-  <div class="flex-1 p-4">
-    <textarea
-      class="w-full h-full resize-none border rounded-lg p-4 font-mono text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-      placeholder="Write your Python diagrams code here..."
-      bind:value={code}
-      oninput={handleCodeChange}
-    ></textarea>
-  </div>
-
-  <!-- Code Editor Footer -->
-  <div class="border-t bg-muted/30 p-4">
-    <div class="text-xs text-muted-foreground space-y-2">
-      <p class="font-medium">Quick Reference:</p>
-      <div class="grid grid-cols-1 gap-1">
-        <p>
-          • Start with: <code
-            class="bg-muted px-1.5 py-0.5 rounded text-xs"
-            >with Diagram("Title"):</code
-          >
-        </p>
-        <p>
-          • Create components: <code
-            class="bg-muted px-1.5 py-0.5 rounded text-xs"
-            >web = Nginx("Web Server")</code
-          >
-        </p>
-        <p>
-          • Connect them: <code
-            class="bg-muted px-1.5 py-0.5 rounded text-xs"
-            >users >> web >> api</code
-          >
-        </p>
+  <div class="flex-1 relative py-6">
+    {#if isLoading}
+      <div class="w-full h-full flex items-center justify-center bg-background">
+        <div class="text-muted-foreground">Loading Monaco Editor...</div>
       </div>
-    </div>
+    {:else if hasError}
+      <textarea
+        class="w-full h-full resize-none border p-4 font-mono text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+        placeholder="Write your Python diagrams code here..."
+        bind:value={code}
+        oninput={(e) => onCodeChange((e.target as HTMLTextAreaElement).value)}
+      ></textarea>
+    {:else}
+      <div
+        bind:this={editorContainer}
+        class="w-full h-full"
+        style="min-height: 400px;"
+      ></div>
+    {/if}
   </div>
 </div>
 
 <style>
-  /* Custom scrollbar styling */
-  textarea::-webkit-scrollbar {
-    width: 8px;
+  :global(.monaco-editor) {
+    --vscode-editor-background: hsl(var(--background));
+    --vscode-editor-foreground: hsl(var(--foreground));
   }
 
-  textarea::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+  /* Custom styling for dark theme integration */
+  :global(.monaco-editor .margin) {
+    background-color: hsl(var(--background));
   }
-
-  textarea::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
-  }
-
-  textarea::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-</style> 
+</style>

@@ -6,7 +6,7 @@
     AlertDescription,
     AlertTitle,
   } from "$lib/components/ui/alert";
-  import { Play, Image, AlertCircle } from "@lucide/svelte";
+  import { Play, AlertCircle } from "@lucide/svelte";
   import { getDiagramPreview } from "$lib/net/api";
 
   export let code: string;
@@ -34,7 +34,7 @@
 
     try {
       const result = await getDiagramPreview(code);
-      
+
       if (result.type === "success" && result.blob) {
         // Clean up previous URL to prevent memory leaks
         if (diagramUrl) {
@@ -58,7 +58,7 @@
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
-    
+
     debounceTimer = setTimeout(() => {
       generateDiagram();
     }, DEBOUNCE_DELAY);
@@ -89,22 +89,13 @@
 </script>
 
 <div class="h-full flex flex-col">
-  <!-- Diagram Header -->
-  <div class="border-b bg-muted/50 px-4 py-3 flex items-center gap-2">
-    <Image class="h-4 w-4 text-muted-foreground" />
-    <h2 class="font-semibold text-foreground">Generated Diagram</h2>
-  </div>
-
-  <!-- Diagram Content -->
   <div class="flex-1 p-4 flex items-center justify-center bg-muted/10">
     {#if isLoading}
       <div class="flex flex-col items-center space-y-4">
         <div
           class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"
         ></div>
-        <p class="text-sm text-muted-foreground">
-          Generating diagram...
-        </p>
+        <p class="text-sm text-muted-foreground">Generating diagram...</p>
       </div>
     {:else if error}
       <div class="max-w-md w-full">
@@ -161,40 +152,4 @@
       </div>
     {/if}
   </div>
-
-  <!-- Diagram Footer -->
-  <div class="border-t bg-muted/30 p-4">
-    <div class="flex items-center gap-2 text-sm">
-      {#if diagramUrl}
-        <div class="flex items-center gap-2 text-green-600">
-          <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span>Diagram generated successfully</span>
-        </div>
-      {:else if error}
-        <div class="flex items-center gap-2 text-destructive">
-          <div class="w-2 h-2 bg-destructive rounded-full"></div>
-          <span>Generation failed</span>
-        </div>
-      {:else if isLoading}
-        <div class="flex items-center gap-2 text-blue-600">
-          <div
-            class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
-          ></div>
-          <span>Generating diagram...</span>
-        </div>
-      {:else if code.trim()}
-        <div class="flex items-center gap-2 text-muted-foreground">
-          <div class="w-2 h-2 bg-muted-foreground rounded-full"></div>
-          <span>Ready to generate</span>
-        </div>
-      {:else}
-        <div class="flex items-center gap-2 text-muted-foreground">
-          <div
-            class="w-2 h-2 bg-muted-foreground/50 rounded-full"
-          ></div>
-          <span>Enter code to get started</span>
-        </div>
-      {/if}
-    </div>
-  </div>
-</div> 
+</div>

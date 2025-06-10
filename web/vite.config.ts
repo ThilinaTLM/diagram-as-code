@@ -10,4 +10,14 @@ export default defineConfig({
       $lib: path.resolve("./src/lib"),
     },
   },
+  optimizeDeps: {
+    include: ['monaco-editor']
+  },
+  define: {
+    // Monaco Editor requires these globals for web workers
+    global: 'globalThis',
+  },
+  worker: {
+    format: 'es'
+  }
 });

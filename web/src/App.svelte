@@ -99,8 +99,6 @@
       <ResizablePane defaultSize={50} minSize={30}>
         <CodeEditor 
           {code}
-          {selectedExample}
-          {examples}
           onCodeChange={handleCodeChange}
         />
       </ResizablePane>

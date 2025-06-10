@@ -12,6 +12,7 @@ import os
 import tempfile
 import sys
 from contextlib import redirect_stdout, redirect_stderr
+import types
 
 app = FastAPI(title="Graph as Code Online", description="Generate diagrams from Python code")
 
@@ -46,68 +47,50 @@ class DiagramWrapper:
     def __getattr__(self, name):
         return getattr(self._diagram, name)
 
+class DiagramsModuleWrapper:
+    """Wrapper for the diagrams module that replaces Diagram with DiagramWrapper"""
+    def __init__(self, original_module, diagram_wrapper_class):
+        self._original_module = original_module
+        self._diagram_wrapper_class = diagram_wrapper_class
+    
+    def __getattr__(self, name):
+        if name == 'Diagram':
+            return self._diagram_wrapper_class
+        return getattr(self._original_module, name)
+
 def execute_diagram_code(code):
     """Execute Python code to generate a diagram and return as BytesIO object"""
     with tempfile.TemporaryDirectory() as temp_dir:
         diagram_path = os.path.join(temp_dir, "diagram")
         
-        # Create a safe execution environment
-        safe_globals = {
-            '__builtins__': {
-                'print': print,
-                'len': len,
-                'str': str,
-                'int': int,
-                'float': float,
-                'bool': bool,
-                'list': list,
-                'dict': dict,
-                'tuple': tuple,
-                'set': set,
-                'range': range,
-                'enumerate': enumerate,
-                'zip': zip,
-                'map': map,
-                'filter': filter,
-                'sorted': sorted,
-                'sum': sum,
-                'min': max,
-                'max': max,
-            },
-            # Diagram-related imports - use our wrapper
-            'Diagram': DiagramWrapper,
-            'Cluster': Cluster,
-            'EC2': EC2,
-            'Users': Users,
-            'PostgreSQL': PostgreSQL,
-            'Nginx': Nginx,
-            # File path for saving
-            'diagram_path': diagram_path,
-            'tempfile': tempfile,
-            'os': os,
-        }
+        # Import all the diagrams modules that might be used
+        import diagrams
+        import diagrams.aws.compute
+        import diagrams.aws.database
+        import diagrams.aws.network
+        import diagrams.aws.storage
+        import diagrams.aws.management
+        import diagrams.onprem.client
+        import diagrams.onprem.database
+        import diagrams.onprem.network
+        import diagrams.k8s.compute
+        import diagrams.k8s.network
+        import diagrams.k8s.storage
         
-        # Add more diagram components as needed
-        try:
-            # Import common diagram components dynamically
-            from diagrams.aws import analytics, compute, database, network, storage
-            from diagrams.onprem import client, database as onprem_db, network as onprem_net
-            from diagrams.gcp import analytics as gcp_analytics, compute as gcp_compute
-            
-            safe_globals.update({
-                'aws_analytics': analytics,
-                'aws_compute': compute,
-                'aws_database': database,
-                'aws_network': network,
-                'aws_storage': storage,
-                'onprem_client': client,
-                'onprem_database': onprem_db,
-                'onprem_network': onprem_net,
-                'gcp_analytics': gcp_analytics,
-                'gcp_compute': gcp_compute,
-            })
-        except ImportError:
-            pass  # Some modules might not be available
+        # Create a wrapper for the diagrams module that replaces Diagram
+        diagrams_wrapper = DiagramsModuleWrapper(diagrams, DiagramWrapper)
+        
+        # Store original diagrams module
+        original_diagrams_module = sys.modules.get('diagrams')
+        
+        # Create execution environment with standard builtins but override Diagram
+        safe_globals = {
+            '__builtins__': __builtins__,
+            'Diagram': DiagramWrapper,
+            'Cluster': diagrams.Cluster,
+            'diagrams': diagrams_wrapper,
+            'diagram_path': diagram_path,
+        }
         
         safe_locals = {}
         
@@ -116,6 +99,9 @@ def execute_diagram_code(code):
         stderr_capture = io.StringIO()
         
         try:
+            # Temporarily replace the diagrams module in sys.modules
+            sys.modules['diagrams'] = diagrams_wrapper
+            
             with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
                 exec(code, safe_globals, safe_locals)
             
@@ -135,6 +121,10 @@ def execute_diagram_code(code):
             if stderr_output:
                 error_msg += f"\nStderr: {stderr_output}"
             return None, error_msg
+        finally:
+            # Restore original diagrams module
+            if original_diagrams_module:
+                sys.modules['diagrams'] = original_diagrams_module
 
 @app.post('/diagram')
 async def execute_diagram(request: Request):
