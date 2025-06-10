@@ -5,39 +5,24 @@ from diagrams.onprem.database import PostgreSQL
 from diagrams.onprem.network import Nginx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import io
 import os
 import tempfile
 import sys
 from contextlib import redirect_stdout, redirect_stderr
-from typing import Optional
 
 app = FastAPI(title="Graph as Code Online", description="Generate diagrams from Python code")
 
-# Request model for code execution
-class CodeRequest(BaseModel):
-    code: str
-
-# Import available diagram components
-AVAILABLE_COMPONENTS = {
-    'aws': {
-        'compute': {
-            'EC2': EC2
-        }
-    },
-    'onprem': {
-        'client': {
-            'Users': Users
-        },
-        'database': {
-            'PostgreSQL': PostgreSQL
-        },
-        'network': {
-            'Nginx': Nginx
-        }
-    }
-}
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class DiagramWrapper:
     """Wrapper for Diagram that automatically injects filename and show parameters"""
