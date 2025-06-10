@@ -4,7 +4,7 @@ export type Result = {
   error: string | null;
 };
 
-const API_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || window.location.origin;
 
 export async function getDiagramPreview(source: string): Promise<Result> {
   try {

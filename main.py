@@ -15,8 +15,12 @@ app = FastAPI(title="Graph as Code Online", description="Generate diagrams from 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5000"],  # Allow all origins for production
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5000",
+        "http://0.0.0.0:5000",
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
