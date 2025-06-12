@@ -18,8 +18,21 @@
     selectedExample: string;
   } = $props();
 
+  let showToast = $state(false);
+  let toastMessage = $state("");
+
+  const allExamples = $derived([
+    ...examples,
+    {
+      id: "custom",
+      name: "Custom Code",
+      description: "Code loaded from URL or custom modifications",
+      file: ""
+    }
+  ]);
+
   const triggerContent = $derived(
-    examples.find((example) => example.id === selectedExample)?.name ??
+    allExamples.find((example) => example.id === selectedExample)?.name ??
       "Select an example"
   );
 
@@ -57,6 +70,11 @@
                   {example.name}
                 </Select.Item>
               {/each}
+              {#if selectedExample === "custom"}
+                <Select.Item value="custom" label="Custom Code">
+                  Custom Code
+                </Select.Item>
+              {/if}
             </Select.Group>
           </Select.Content>
         </Select.Root>
@@ -64,3 +82,10 @@
     </div>
   </div>
 </header>
+
+<!-- Toast Notification -->
+{#if showToast}
+  <div class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 transition-all duration-300">
+    {toastMessage}
+  </div>
+{/if}

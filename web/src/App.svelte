@@ -9,48 +9,94 @@
   import CodeEditor from "$lib/components/CodeEditor.svelte";
   import Preview from "$lib/components/Preview.svelte";
 
-  // Example configurations
   const examples = [
     {
       id: "example-1",
       name: "3-Tier Architecture",
-      description: "Simple web application with frontend, backend, and database",
-      file: "/examples/example-1.py"
+      description:
+        "Simple web application with frontend, backend, and database",
+      file: "/examples/example-1.py",
     },
     {
-      id: "example-2", 
+      id: "example-2",
       name: "Microservices",
-      description: "Microservices architecture with API gateway and multiple services",
-      file: "/examples/example-2.py"
+      description:
+        "Microservices architecture with API gateway and multiple services",
+      file: "/examples/example-2.py",
     },
     {
       id: "example-3",
       name: "Serverless",
       description: "Serverless web application using AWS Lambda and DynamoDB",
-      file: "/examples/example-3.py"
+      file: "/examples/example-3.py",
     },
     {
       id: "example-4",
       name: "Kubernetes",
       description: "Kubernetes deployment with pods, services, and ingress",
-      file: "/examples/example-4.py"
-    }
+      file: "/examples/example-4.py",
+    },
   ];
 
-  let selectedExample = examples[0].id;
-  let code = "";
-  let previewLoading = false;
-  let error = "";
+  let selectedExample = $state(examples[0].id);
+  let code = $state("");
+  let error = $state("");
 
-  // Function to load example code from file
+  function encodeCodeToBase64(code: string): string {
+    try {
+      return btoa(unescape(encodeURIComponent(code)));
+    } catch (err) {
+      console.error("Failed to encode code:", err);
+      return "";
+    }
+  }
+
+  function decodeCodeFromBase64(base64: string): string {
+    try {
+      return decodeURIComponent(escape(atob(base64)));
+    } catch (err) {
+      console.error("Failed to decode code:", err);
+      return "";
+    }
+  }
+
+  function updateURL(code: string) {
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    if (code.trim()) {
+      const encodedCode = encodeCodeToBase64(code);
+      url.searchParams.set("code", encodedCode);
+    } else {
+      url.searchParams.delete("code");
+    }
+
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  function loadCodeFromURL(): string | null {
+    if (typeof window === "undefined") return null;
+
+    const params = new URLSearchParams(window.location.search);
+    const encodedCode = params.get("code");
+
+    if (encodedCode) {
+      return decodeCodeFromBase64(encodedCode);
+    }
+
+    return null;
+  }
+
   async function loadExample(exampleId: string) {
-    const example = examples.find(ex => ex.id === exampleId);
+    const example = examples.find((ex) => ex.id === exampleId);
     if (!example) return;
 
     try {
       const response = await fetch(example.file);
       if (response.ok) {
-        code = await response.text();
+        const exampleCode = await response.text();
+        code = exampleCode;
+        updateURL(code);
       } else {
         error = `Failed to load example: ${response.status}`;
       }
@@ -59,55 +105,48 @@
     }
   }
 
-  // Function to handle example selection
   async function handleExampleChange(exampleId: string) {
     selectedExample = exampleId;
-    await loadExample(selectedExample);
+
+    if (exampleId !== "custom") {
+      await loadExample(selectedExample);
+    }
   }
 
-  // Function to handle code changes
   function handleCodeChange(newCode: string) {
     code = newCode;
+    updateURL(code);
+
+    if (selectedExample !== "custom" && code !== newCode) {
+      selectedExample = "custom";
+    }
   }
 
-  // Function to handle manual generation (for header button)
-  function handleGenerate() {
-    // The Preview component handles generation automatically with debouncing
-    // This function can be used for manual triggers if needed
-  }
-
-  // Load initial example on component mount
   onMount(() => {
-    loadExample(selectedExample);
+    const urlCode = loadCodeFromURL();
+
+    if (urlCode) {
+      code = urlCode;
+      selectedExample = "custom";
+    } else {
+      loadExample(selectedExample);
+    }
   });
 </script>
 
 <main class="h-screen flex flex-col bg-background">
-  <!-- Header -->
-  <Header 
-    {examples}
-    {selectedExample}
-    isLoading={previewLoading}
-    onExampleChange={handleExampleChange}
-    onGenerate={handleGenerate}
-  />
+  <Header {examples} {selectedExample} onExampleChange={handleExampleChange} />
 
-  <!-- Main Content Area with Resizable Panes -->
   <div class="flex-1 overflow-hidden">
     <ResizablePaneGroup direction="horizontal" class="h-full">
-      <!-- Left Pane - Code Editor -->
       <ResizablePane defaultSize={50} minSize={30}>
-        <CodeEditor 
-          {code}
-          onCodeChange={handleCodeChange}
-        />
+        <CodeEditor {code} onCodeChange={handleCodeChange} />
       </ResizablePane>
 
       <ResizableHandle withHandle />
 
-      <!-- Right Pane - Diagram Preview -->
       <ResizablePane defaultSize={50} minSize={30}>
-        <Preview {code} bind:isLoading={previewLoading} />
+        <Preview {code} />
       </ResizablePane>
     </ResizablePaneGroup>
   </div>

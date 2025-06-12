@@ -6,9 +6,17 @@
     AlertDescription,
     AlertTitle,
   } from "$lib/components/ui/alert";
-  import { Play, AlertCircle, RefreshCw, Download, ToggleLeft, ToggleRight } from "@lucide/svelte";
+  import {
+    Play,
+    AlertCircle,
+    RefreshCw,
+    Download,
+    ToggleLeft,
+    ToggleRight,
+  } from "@lucide/svelte";
   import { getDiagramPreview } from "$lib/net/api";
   import DiagramViewer from "./DiagramViewer.svelte";
+  import CopyButton from "./CopyButton.svelte";
 
   interface Props {
     code: string;
@@ -55,7 +63,7 @@
 
   function debouncedGenerateDiagram() {
     if (!autoRefresh) return;
-    
+
     if (debounceTimer) {
       clearTimeout(debounceTimer);
     }
@@ -102,8 +110,8 @@
     try {
       const response = await fetch(diagramUrl);
       const blob = await response.blob();
-      
-      const link = document.createElement('a');
+
+      const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = `diagram-${Date.now()}.png`;
       document.body.appendChild(link);
@@ -111,14 +119,16 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
     } catch (err) {
-      console.error('Failed to save image:', err);
+      console.error("Failed to save image:", err);
     }
   }
 </script>
 
 <div class="h-full flex flex-col">
   <!-- Toolbar -->
-  <div class="flex items-center justify-between p-2 border-b bg-background/50 backdrop-blur-sm">
+  <div
+    class="flex items-center justify-between p-2 border-b bg-background/50 backdrop-blur-sm"
+  >
     <div class="flex items-center gap-2">
       <Button
         variant="ghost"
@@ -132,9 +142,9 @@
         {:else}
           <ToggleLeft class="h-3 w-3 text-muted-foreground" />
         {/if}
-        Auto
+        Auto Refresh
       </Button>
-      
+
       <Button
         variant="ghost"
         size="sm"
@@ -143,22 +153,25 @@
         class="gap-2 text-xs"
         title="Refresh diagram"
       >
-        <RefreshCw class={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+        <RefreshCw class={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
         Refresh
       </Button>
     </div>
 
-    <Button
-      variant="ghost"
-      size="sm"
-      onclick={handleSaveImage}
-      disabled={!diagramUrl || isLoading}
-      class="gap-2 text-xs"
-      title="Save diagram as image"
-    >
-      <Download class="h-3 w-3" />
-      Save
-    </Button>
+    <div class="flex items-center gap-2">
+      <CopyButton />
+      <Button
+        variant="ghost"
+        size="sm"
+        onclick={handleSaveImage}
+        disabled={!diagramUrl || isLoading}
+        class="gap-2 text-xs"
+        title="Save diagram as image"
+      >
+        <Download class="h-3 w-3" />
+        Save
+      </Button>
+    </div>
   </div>
 
   <!-- Main content area -->
